@@ -87,7 +87,9 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
           .callMethod('stringify', [resObject]);
       final resDartObject = json.decode(resJSON);
       final keys = resDartObject['keys'];
-      return keys.where((key) => (key as String).startsWith('flutter.'));
+      return keys
+          .whereType<String>()
+          .where((it) => (it as String).startsWith('flutter.'));
     }
     return html.window.localStorage.keys
         .where((key) => key.startsWith('flutter.'));
