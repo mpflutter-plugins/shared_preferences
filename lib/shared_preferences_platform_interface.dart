@@ -6,8 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import './shared_preferences_io.dart'
-    if (dart.library.js) './shared_preferences_web.dart';
+import './shared_preferences_web.dart';
 
 /// The interface that implementations of shared_preferences must implement.
 ///
@@ -20,15 +19,7 @@ abstract class SharedPreferencesStorePlatform {
   /// The default instance of [SharedPreferencesStorePlatform] to use.
   ///
   /// Defaults to [MethodChannelSharedPreferencesStore].
-  static SharedPreferencesStorePlatform get instance => _instance;
-
-  /// Platform-specific plugins should set this with their own platform-specific
-  /// class that extends [SharedPreferencesStorePlatform] when they register themselves.
-  static set instance(SharedPreferencesStorePlatform value) {
-    _instance = value;
-  }
-
-  static SharedPreferencesStorePlatform _instance = SharedPreferencesStore();
+  static SharedPreferencesStorePlatform instance = SharedPreferencesStore();
 
   /// Only mock implementations should set this to true.
   ///

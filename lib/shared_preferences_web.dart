@@ -4,8 +4,8 @@
 
 import 'dart:async';
 import 'dart:convert' show json;
-import 'dart:html' as html;
-import 'dart:js' as js;
+// ignore: import_of_legacy_library_into_null_safe
+import 'package:mpcore/mpjs/mpjs.dart' as js;
 
 import './shared_preferences_platform_interface.dart';
 
@@ -20,13 +20,12 @@ const bool isTaro = bool.fromEnvironment(
 class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   @override
   Future<bool> clear() async {
-    for (String key in _storedFlutterKeys) {
+    for (String key in await _storedFlutterKeys) {
       if (isTaro) {
-        (js.context['Taro'] as js.JsObject)
-            .callMethod('removeStorageSync', [key]);
+        js.context['Taro'].callMethod('removeStorageSync', [key]);
         continue;
       }
-      html.window.localStorage.remove(key);
+      js.context['localStorage'].callMethod('removeItem', [key]);
     }
     return true;
   }
@@ -34,13 +33,14 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   @override
   Future<Map<String, Object>> getAll() async {
     final Map<String, Object> allData = {};
-    for (String key in _storedFlutterKeys) {
+    for (String key in await _storedFlutterKeys) {
       if (isTaro) {
-        allData[key] = _decodeValue((js.context['Taro'] as js.JsObject)
-            .callMethod('getStorageSync', [key]));
+        allData[key] = _decodeValue(
+            await js.context['Taro'].callMethod('getStorageSync', [key]));
         continue;
       }
-      allData[key] = _decodeValue(html.window.localStorage[key]!);
+      allData[key] = _decodeValue(
+          await js.context['localStorage'].callMethod('getItem', [key]));
     }
     return allData;
   }
@@ -49,11 +49,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   Future<bool> remove(String key) async {
     _checkPrefix(key);
     if (isTaro) {
-      (js.context['Taro'] as js.JsObject)
-          .callMethod('removeStorageSync', [key]);
+      await js.context['Taro'].callMethod('removeStorageSync', [key]);
       return true;
     }
-    html.window.localStorage.remove(key);
+    js.context['localStorage'].callMethod('removeItem', [key]);
     return true;
   }
 
@@ -61,11 +60,12 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   Future<bool> setValue(String valueType, String key, Object? value) async {
     _checkPrefix(key);
     if (isTaro) {
-      (js.context['Taro'] as js.JsObject)
+      await js.context['Taro']
           .callMethod('setStorageSync', [key, _encodeValue(value)]);
       return true;
     }
-    html.window.localStorage[key] = _encodeValue(value);
+    await js.context['localStorage']
+        .callMethod('setItem', [key, _encodeValue(value)]);
     return true;
   }
 
@@ -79,20 +79,27 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
     }
   }
 
-  Iterable<String> get _storedFlutterKeys {
+  Future<Iterable<String>> get _storedFlutterKeys async {
     if (isTaro) {
       final resObject =
-          (js.context['Taro'] as js.JsObject).callMethod('getStorageInfoSync');
-      final resJSON = (js.context['JSON'] as js.JsObject)
-          .callMethod('stringify', [resObject]);
+          await js.context['Taro'].callMethod('getStorageInfoSync');
+      final resJSON =
+          await js.context['JSON'].callMethod('stringify', [resObject]);
       final resDartObject = json.decode(resJSON);
       final keys = resDartObject['keys'];
       return keys
           .whereType<String>()
           .where((it) => (it as String).startsWith('flutter.'));
     }
-    return html.window.localStorage.keys
-        .where((key) => key.startsWith('flutter.'));
+    final resObject = await js.context['Object'].callMethod(
+        'keys', [await js.context.getPropertyValue('localStorage')]);
+    final resJSON =
+        await js.context['JSON'].callMethod('stringify', [resObject]);
+    final resDartObject = json.decode(resJSON);
+    final keys = resDartObject;
+    return keys
+        .whereType<String>()
+        .where((it) => (it as String).startsWith('flutter.'));
   }
 
   String _encodeValue(Object? value) {
