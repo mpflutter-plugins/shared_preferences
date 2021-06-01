@@ -17,12 +17,6 @@ dependencies:
       ref: stable
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_driver:
-    sdk: flutter
-  integration_test:
-    sdk: flutter
   pedantic: ^1.10.0
 
 dependency_overrides:
@@ -35,7 +29,5 @@ dependency_overrides:
       url: https://github.com/mpflutter/flutter_web_plugins
       ref: stable
 
-
 environment:
   sdk: ">=2.12.0-259.9.beta <3.0.0"
-  flutter: ">=1.12.13+hotfix.5"
