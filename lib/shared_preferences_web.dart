@@ -9,29 +9,36 @@ import 'package:mpcore/mpjs/mpjs.dart' as js;
 
 import './shared_preferences_platform_interface.dart';
 
-const bool isTaro = bool.fromEnvironment(
-  'mpcore.env.taro',
-  defaultValue: false,
-);
-
 /// The web implementation of [SharedPreferencesStorePlatform].
 ///
 /// This class implements the `package:shared_preferences` functionality for the web.
 class SharedPreferencesStore extends SharedPreferencesStorePlatform {
+  bool? isTaro;
+
+  Future<bool> checkIsTaro() async {
+    if (isTaro != null) {
+      return isTaro!;
+    } else {
+      isTaro = await js.context.hasProperty('Taro');
+      return isTaro!;
+    }
+  }
+
   @override
   Future<bool> clear() async {
     for (String key in await _storedFlutterKeys) {
-      if (isTaro) {
+      if (await checkIsTaro()) {
         js.context['Taro'].callMethod('removeStorageSync', [key]);
-        continue;
+      } else {
+        js.context['localStorage'].callMethod('removeItem', [key]);
       }
-      js.context['localStorage'].callMethod('removeItem', [key]);
     }
     return true;
   }
 
   @override
   Future<Map<String, Object>> getAll() async {
+    final isTaro = await checkIsTaro();
     final Map<String, Object> allData = {};
     for (String key in await _storedFlutterKeys) {
       if (isTaro) {
@@ -47,6 +54,7 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> remove(String key) async {
+    final isTaro = await checkIsTaro();
     _checkPrefix(key);
     if (isTaro) {
       await js.context['Taro'].callMethod('removeStorageSync', [key]);
@@ -58,6 +66,7 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> setValue(String valueType, String key, Object? value) async {
+    final isTaro = await checkIsTaro();
     _checkPrefix(key);
     if (isTaro) {
       await js.context['Taro']
@@ -80,6 +89,7 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   }
 
   Future<Iterable<String>> get _storedFlutterKeys async {
+    final isTaro = await checkIsTaro();
     if (isTaro) {
       final resObject =
           await js.context['Taro'].callMethod('getStorageInfoSync');
