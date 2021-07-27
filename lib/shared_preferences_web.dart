@@ -13,22 +13,22 @@ import './shared_preferences_platform_interface.dart';
 ///
 /// This class implements the `package:shared_preferences` functionality for the web.
 class SharedPreferencesStore extends SharedPreferencesStorePlatform {
-  bool? isTaro;
+  bool? isWX;
 
-  Future<bool> checkIsTaro() async {
-    if (isTaro != null) {
-      return isTaro!;
+  Future<bool> checkIsWX() async {
+    if (isWX != null) {
+      return isWX!;
     } else {
-      isTaro = await js.context.hasProperty('Taro');
-      return isTaro!;
+      isWX = await js.context.hasProperty('wx');
+      return isWX!;
     }
   }
 
   @override
   Future<bool> clear() async {
     for (String key in await _storedFlutterKeys) {
-      if (await checkIsTaro()) {
-        js.context['Taro'].callMethod('removeStorageSync', [key]);
+      if (await checkIsWX()) {
+        js.context['wx'].callMethod('removeStorageSync', [key]);
       } else {
         js.context['localStorage'].callMethod('removeItem', [key]);
       }
@@ -38,12 +38,12 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<Map<String, Object>> getAll() async {
-    final isTaro = await checkIsTaro();
+    final isWX = await checkIsWX();
     final Map<String, Object> allData = {};
     for (String key in await _storedFlutterKeys) {
-      if (isTaro) {
+      if (isWX) {
         allData[key] = _decodeValue(
-            await js.context['Taro'].callMethod('getStorageSync', [key]));
+            await js.context['wx'].callMethod('getStorageSync', [key]));
         continue;
       }
       allData[key] = _decodeValue(
@@ -54,10 +54,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> remove(String key) async {
-    final isTaro = await checkIsTaro();
+    final isWX = await checkIsWX();
     _checkPrefix(key);
-    if (isTaro) {
-      await js.context['Taro'].callMethod('removeStorageSync', [key]);
+    if (isWX) {
+      await js.context['wx'].callMethod('removeStorageSync', [key]);
       return true;
     }
     js.context['localStorage'].callMethod('removeItem', [key]);
@@ -66,10 +66,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> setValue(String valueType, String key, Object? value) async {
-    final isTaro = await checkIsTaro();
+    final isWX = await checkIsWX();
     _checkPrefix(key);
-    if (isTaro) {
-      await js.context['Taro']
+    if (isWX) {
+      await js.context['wx']
           .callMethod('setStorageSync', [key, _encodeValue(value)]);
       return true;
     }
@@ -89,10 +89,9 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   }
 
   Future<Iterable<String>> get _storedFlutterKeys async {
-    final isTaro = await checkIsTaro();
-    if (isTaro) {
-      final resObject =
-          await js.context['Taro'].callMethod('getStorageInfoSync');
+    final isWX = await checkIsWX();
+    if (isWX) {
+      final resObject = await js.context['wx'].callMethod('getStorageInfoSync');
       final resJSON =
           await js.context['JSON'].callMethod('stringify', [resObject]);
       final resDartObject = json.decode(resJSON);
