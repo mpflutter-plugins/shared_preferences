@@ -13,22 +13,31 @@ import './shared_preferences_platform_interface.dart';
 ///
 /// This class implements the `package:shared_preferences` functionality for the web.
 class SharedPreferencesStore extends SharedPreferencesStorePlatform {
-  bool? isWX;
+  String miniprogramScope = 'wx';
+  bool? isMiniProgram;
 
-  Future<bool> checkIsWX() async {
-    if (isWX != null) {
-      return isWX!;
+  Future<bool> checkIsMiniProgram() async {
+    if (isMiniProgram != null) {
+      return isMiniProgram!;
     } else {
-      isWX = await js.context.hasProperty('wx');
-      return isWX!;
+      if (await js.context.hasProperty('wx')) {
+        isMiniProgram = true;
+        miniprogramScope = 'wx';
+      } else if (await js.context.hasProperty('swan')) {
+        isMiniProgram = true;
+        miniprogramScope = 'swan';
+      } else {
+        isMiniProgram = false;
+      }
+      return isMiniProgram!;
     }
   }
 
   @override
   Future<bool> clear() async {
     for (String key in await _storedFlutterKeys) {
-      if (await checkIsWX()) {
-        js.context['wx'].callMethod('removeStorageSync', [key]);
+      if (await checkIsMiniProgram()) {
+        js.context[miniprogramScope].callMethod('removeStorageSync', [key]);
       } else {
         js.context['localStorage'].callMethod('removeItem', [key]);
       }
@@ -38,12 +47,12 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<Map<String, Object>> getAll() async {
-    final isWX = await checkIsWX();
+    final isMiniProgram = await checkIsMiniProgram();
     final Map<String, Object> allData = {};
     for (String key in await _storedFlutterKeys) {
-      if (isWX) {
-        allData[key] = _decodeValue(
-            await js.context['wx'].callMethod('getStorageSync', [key]));
+      if (isMiniProgram) {
+        allData[key] = _decodeValue(await js.context[miniprogramScope]
+            .callMethod('getStorageSync', [key]));
         continue;
       }
       allData[key] = _decodeValue(
@@ -54,10 +63,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> remove(String key) async {
-    final isWX = await checkIsWX();
+    final isMiniProgram = await checkIsMiniProgram();
     _checkPrefix(key);
-    if (isWX) {
-      await js.context['wx'].callMethod('removeStorageSync', [key]);
+    if (isMiniProgram) {
+      await js.context[miniprogramScope].callMethod('removeStorageSync', [key]);
       return true;
     }
     js.context['localStorage'].callMethod('removeItem', [key]);
@@ -66,10 +75,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> setValue(String valueType, String key, Object? value) async {
-    final isWX = await checkIsWX();
+    final isMiniProgram = await checkIsMiniProgram();
     _checkPrefix(key);
-    if (isWX) {
-      await js.context['wx']
+    if (isMiniProgram) {
+      await js.context[miniprogramScope]
           .callMethod('setStorageSync', [key, _encodeValue(value)]);
       return true;
     }
@@ -89,9 +98,10 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
   }
 
   Future<Iterable<String>> get _storedFlutterKeys async {
-    final isWX = await checkIsWX();
-    if (isWX) {
-      final resObject = await js.context['wx'].callMethod('getStorageInfoSync');
+    final isMiniProgram = await checkIsMiniProgram();
+    if (isMiniProgram) {
+      final resObject =
+          await js.context[miniprogramScope].callMethod('getStorageInfoSync');
       final resJSON =
           await js.context['JSON'].callMethod('stringify', [resObject]);
       final resDartObject = json.decode(resJSON);
