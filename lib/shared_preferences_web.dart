@@ -26,6 +26,9 @@ class SharedPreferencesStore extends SharedPreferencesStorePlatform {
       } else if (await js.context.hasProperty('swan')) {
         isMiniProgram = true;
         miniprogramScope = 'swan';
+      } else if (await js.context.hasProperty('my')) {
+        isMiniProgram = true;
+        miniprogramScope = 'my';
       } else {
         isMiniProgram = false;
       }
