@@ -16,7 +16,7 @@ const cosInstance = new COS({
 const cosBucket = "mpflutter-dist-1253771526";
 const cosRegion = "ap-guangzhou";
 
-const currentVersion = '1.0.0';
+const currentVersion = '2.0.8';
 
 class DartPackageDeployer {
   constructor(name) {
